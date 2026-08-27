@@ -13,6 +13,8 @@ import {
   KeyboardAvoidingView,
   Image,
 } from 'react-native';
+import { Audio } from 'expo-av';
+import * as FileSystem from 'expo-file-system';
 import * as Notifications from 'expo-notifications';
 import * as ImagePicker from 'expo-image-picker';
 import axios from 'axios';
@@ -79,11 +81,9 @@ function PulseRing({ isRecording }) {
 // HomeScreen
 // ===========================================================================
 export default function HomeScreen({ navigation }) {
-  // Voice state — disabled in Expo Go (native module not available)
-  // Voice will be enabled via EAS dev build.
-  const isRecording   = false;
-  const transcript    = '';
-  const micPermission = null;
+  // Voice state
+  const [isRecording, setIsRecording] = useState(false);
+  const recordingRef  = useRef(null);
 
   // Text input state
   const [typedText, setTypedText] = useState('');
@@ -91,31 +91,119 @@ export default function HomeScreen({ navigation }) {
   // Image state
   const [pickedImageUri, setPickedImageUri] = useState(null);
 
-  // Shared loading state
-  const [loading, setLoading] = useState(false);
+  // Shared loading state + dynamic label
+  const [loading,      setLoading]      = useState(false);
+  const [loadingLabel, setLoadingLabel] = useState('Understanding your reminder…');
+
+  // Banner shown below mic button for errors / hints
+  const [micBannerMsg, setMicBannerMsg] = useState('');
 
   // -------------------------------------------------------------------------
-  // Permissions on mount
+  // Permissions on mount + cleanup on unmount
   // -------------------------------------------------------------------------
   useEffect(() => {
     (async () => {
-      // Notification permission
-      const { status: notifStatus } = await Notifications.requestPermissionsAsync();
-      if (notifStatus !== 'granted') {
-        console.warn('Notification permission not granted');
-      }
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== 'granted') console.warn('Notification permission not granted');
     })();
+
+    // Stop any in-progress recording if the screen is unmounted
+    return () => {
+      if (recordingRef.current) {
+        recordingRef.current.stopAndUnloadAsync().catch(() => {});
+      }
+    };
   }, []);
 
   // -------------------------------------------------------------------------
-  // Voice — disabled in Expo Go; will work in EAS dev build
+  // Voice recording — works in Expo Go via expo-av + Gemini audio API
   // -------------------------------------------------------------------------
-  function handleMicPress() {
-    Alert.alert(
-      'Voice Input Unavailable',
-      'Voice recognition requires a development build. Use text or image input for now.',
-      [{ text: 'OK' }]
-    );
+  async function handleMicPress() {
+    if (isRecording) {
+      await stopRecording();
+    } else {
+      await startRecording();
+    }
+  }
+
+  async function startRecording() {
+    try {
+      const { status } = await Audio.requestPermissionsAsync();
+      if (status !== 'granted') {
+        setMicBannerMsg('🔴 Microphone permission denied. Enable it in device Settings.');
+        return;
+      }
+      setMicBannerMsg('');
+
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      recordingRef.current = recording;
+      setIsRecording(true);
+    } catch (err) {
+      setMicBannerMsg(`🔴 Couldn't start recording: ${err.message}`);
+    }
+  }
+
+  async function stopRecording() {
+    if (!recordingRef.current) return;
+    try {
+      setIsRecording(false);
+      await recordingRef.current.stopAndUnloadAsync();
+      const uri = recordingRef.current.getURI();
+      recordingRef.current = null;
+
+      if (!uri) {
+        setMicBannerMsg('🔴 No audio captured. Please try again.');
+        return;
+      }
+
+      // Reset audio mode so playback works normally again
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false }).catch(() => {});
+
+      // Read audio file as base64 and send to server
+      const base64 = await FileSystem.readAsStringAsync(uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      await parseFromAudio(base64);
+    } catch (err) {
+      setIsRecording(false);
+      setMicBannerMsg(`🔴 Recording error: ${err.message}`);
+    }
+  }
+
+  async function parseFromAudio(base64Audio) {
+    setLoadingLabel('Transcribing your voice…');
+    setLoading(true);
+    try {
+      const res = await axios.post(`${API_BASE}/api/parse`, {
+        audio:    base64Audio,
+        mimeType: 'audio/m4a',
+      });
+      const reminders = res.data?.reminders ?? [];
+      navigation.navigate('Confirm', { reminders });
+    } catch (err) {
+      const serverError = err?.response?.data?.error ?? '';
+      const isMalformed =
+        serverError.toLowerCase().includes('malformed') ||
+        serverError.toLowerCase().includes('parse');
+      Alert.alert(
+        isMalformed ? "Couldn't Understand" : 'Error',
+        isMalformed
+          ? "Couldn't understand that audio. Try speaking more clearly or use text input."
+          : (serverError || err?.message || 'An unexpected error occurred.'),
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setLoading(false);
+      setLoadingLabel('Understanding your reminder…');
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -127,17 +215,23 @@ export default function HomeScreen({ navigation }) {
       return;
     }
 
+    setLoadingLabel('Understanding your reminder…');
     setLoading(true);
     try {
       const res = await axios.post(`${API_BASE}/api/parse`, { text: text.trim() });
       const reminders = res.data?.reminders ?? [];
       navigation.navigate('Confirm', { reminders });
     } catch (err) {
-      const msg =
-        err?.response?.data?.error ??
-        err?.message ??
-        'An unexpected error occurred.';
-      Alert.alert('Error', msg, [{ text: 'Try again' }]);
+      const serverError = err?.response?.data?.error ?? '';
+      const isMalformed =
+        serverError.toLowerCase().includes('malformed') ||
+        serverError.toLowerCase().includes('parse');
+      const alertTitle = isMalformed ? "Couldn't Understand" : 'Error';
+      const alertMsg = isMalformed
+        ? "Couldn't understand that. Try rephrasing or use text input."
+        : (serverError || err?.message || 'An unexpected error occurred.');
+      Alert.alert(alertTitle, alertMsg, [{ text: 'OK' }]);
+      setTypedText('');
     } finally {
       setLoading(false);
     }
@@ -232,25 +326,13 @@ export default function HomeScreen({ navigation }) {
           </View>
 
           <Text style={styles.micHint}>
-            {isRecording
-              ? 'Listening… tap to stop'
-              : micPermission === false
-                ? '⚠ Microphone permission denied'
-                : 'Tap to speak your reminder'}
+            {isRecording ? '🔴 Recording… tap to stop' : 'Tap to speak your reminder'}
           </Text>
 
-          {/* Transcript preview */}
-          {!!transcript && (
-            <View style={styles.transcriptBox}>
-              <Text style={styles.transcriptLabel}>Heard:</Text>
-              <Text style={styles.transcriptText}>{transcript}</Text>
-              <TouchableOpacity
-                style={styles.useThisButton}
-                onPress={() => parseReminder(transcript)}
-                disabled={loading}
-              >
-                <Text style={styles.useThisText}>Use this ›</Text>
-              </TouchableOpacity>
+          {/* Voice unavailable banner */}
+          {!!micBannerMsg && (
+            <View style={styles.micBanner}>
+              <Text style={styles.micBannerText}>{micBannerMsg}</Text>
             </View>
           )}
         </View>
@@ -311,9 +393,26 @@ export default function HomeScreen({ navigation }) {
         {loading && (
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color="#6c63ff" />
-            <Text style={styles.loadingText}>Analysing…</Text>
+            <Text style={styles.loadingText}>{loadingLabel}</Text>
           </View>
         )}
+
+
+        {/* ── View All Reminders shortcut ── */}
+        <View style={styles.divider}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>or</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
+        <TouchableOpacity
+          style={styles.viewAllBtn}
+          onPress={() => navigation.navigate('RemindersList')}
+          activeOpacity={0.7}
+          disabled={loading}
+        >
+          <Text style={styles.viewAllText}>🔔  View All Reminders</Text>
+        </TouchableOpacity>
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -396,8 +495,24 @@ const styles = StyleSheet.create({
   micHint: {
     fontSize: 13,
     color: '#888',
-    marginBottom: 12,
+    marginBottom: 8,
     textAlign: 'center',
+  },
+  micBanner: {
+    backgroundColor: '#fff3cd',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    marginBottom: 8,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#ffd97d',
+  },
+  micBannerText: {
+    fontSize: 13,
+    color: '#856404',
+    textAlign: 'center',
+    fontWeight: '500',
   },
 
   // ── Transcript ──
@@ -527,5 +642,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: PURPLE,
     fontWeight: '600',
+  },
+
+  // ── View All Reminders button ──
+  viewAllBtn: {
+    flexDirection:     'row',
+    alignItems:        'center',
+    justifyContent:    'center',
+    borderWidth:       1.5,
+    borderColor:       PURPLE,
+    borderRadius:      14,
+    paddingVertical:   13,
+    width:             '100%',
+  },
+  viewAllText: {
+    fontSize:   15,
+    fontWeight: '700',
+    color:      PURPLE,
   },
 });

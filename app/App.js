@@ -1,6 +1,11 @@
 import React from 'react';
+import { LogBox } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+
+// Suppress the Expo Go warning overlay about remote push notifications.
+// Local scheduled notifications still work fine in Expo Go.
+LogBox.ignoreLogs(['expo-notifications: Android Push notifications']);
 
 import HomeScreen from './screens/HomeScreen';
 import ConfirmScreen from './screens/ConfirmScreen';

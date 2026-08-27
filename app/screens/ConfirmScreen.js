@@ -18,6 +18,48 @@ import axios from 'axios';
 const API_BASE = 'http://10.21.170.164:3000'; // ← your LAN IP
 
 // ---------------------------------------------------------------------------
+// Notification trigger builder
+// Returns the correct trigger for one-time vs recurring reminders.
+// DAILY and WEEKLY triggers fire at the NEXT occurrence, so they work even
+// if the initial date is in the past.
+// ---------------------------------------------------------------------------
+function buildNotificationTrigger(isoDatetime, recurrence) {
+  const d      = new Date(isoDatetime);
+  const hour   = d.getHours();
+  const minute = d.getMinutes();
+
+  if (recurrence === 'daily') {
+    return {
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
+      hour,
+      minute,
+    };
+  }
+  if (recurrence === 'weekly') {
+    return {
+      type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+      weekday: d.getDay() + 1, // expo: 1=Sunday … 7=Saturday
+      hour,
+      minute,
+    };
+  }
+  if (recurrence === 'monthly') {
+    // No native monthly trigger — approximate with a 30-day repeating interval.
+    // Fires 30 days after each previous notification.
+    return {
+      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      seconds: 30 * 24 * 60 * 60,
+      repeats: true,
+    };
+  }
+  // One-time: fire at the exact date
+  return {
+    type: Notifications.SchedulableTriggerInputTypes.DATE,
+    date: d,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Recurrence options
 // ---------------------------------------------------------------------------
 const RECURRENCE_OPTIONS = [
@@ -105,6 +147,13 @@ function SegmentedControl({ value, onChange }) {
 // ReminderCard — one editable card per reminder
 // ---------------------------------------------------------------------------
 function ReminderCard({ reminder, index, onChange }) {
+  // Check if the current date+time is in the past
+  const isPast = (() => {
+    try {
+      return buildIso(reminder.dateStr, reminder.timeStr) < new Date().toISOString();
+    } catch { return false; }
+  })();
+
   return (
     <View style={card.container}>
       {/* Card header */}
@@ -114,6 +163,15 @@ function ReminderCard({ reminder, index, onChange }) {
         </View>
         <Text style={card.headerLabel}>Reminder</Text>
       </View>
+
+      {/* Past datetime warning */}
+      {isPast && (
+        <View style={card.pastWarning}>
+          <Text style={card.pastWarningText}>
+            ⚠️ This reminder is in the past — are you sure?
+          </Text>
+        </View>
+      )}
 
       {/* Title */}
       <Text style={s.label}>TITLE</Text>
@@ -237,28 +295,28 @@ export default function ConfirmScreen({ route, navigation }) {
           return; // stop — keep user on screen to retry
         }
 
-        // ── Step 2: Schedule local push notification ────────────────────
+        // ── Step 2: Schedule local push notification ────────────────────────
         let notifId = '';
         try {
           const triggerDate = new Date(isoDatetime);
           const now         = new Date();
+          const isRecurring = recurrence !== null; // daily/weekly/monthly
 
-          if (triggerDate > now) {
-            // TODO: reschedule next occurrence after notification fires
+          // Recurring triggers (DAILY/WEEKLY) fire at the NEXT occurrence —
+          // schedule them regardless of whether the initial date is in the past.
+          // One-time triggers must be in the future.
+          if (isRecurring || triggerDate > now) {
             notifId = await Notifications.scheduleNotificationAsync({
               content: {
                 title: r.title,
                 body:  r.note || r.title,
                 sound: true,
               },
-              trigger: {
-                type: Notifications.SchedulableTriggerInputTypes.DATE,
-                date: triggerDate,
-              },
+              trigger: buildNotificationTrigger(isoDatetime, recurrence),
             });
           } else {
             console.log(
-              `[ConfirmScreen] Skipping notification for "${r.title}" — date is in the past.`
+              `[ConfirmScreen] Skipping one-time notification for "${r.title}" — date is in the past.`
             );
           }
         } catch (notifErr) {
@@ -297,7 +355,10 @@ export default function ConfirmScreen({ route, navigation }) {
         [
           {
             text: 'View All',
-            onPress: () => navigation.navigate('RemindersList'),
+            onPress: () => navigation.reset({
+              index: 1,
+              routes: [{ name: 'Home' }, { name: 'RemindersList' }],
+            }),
           },
         ]
       );
@@ -534,6 +595,20 @@ const card = StyleSheet.create({
     color: '#999',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
+  },
+  pastWarning: {
+    backgroundColor: '#fff3cd',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 4,
+    borderWidth: 1,
+    borderColor: '#ffd97d',
+  },
+  pastWarningText: {
+    fontSize: 12,
+    color: '#856404',
+    fontWeight: '600',
   },
 });
 
