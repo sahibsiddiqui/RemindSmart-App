@@ -4,9 +4,7 @@ const cors = require('cors');
 const axios = require('axios');
 const admin = require('firebase-admin');
 
-// ---------------------------------------------------------------------------
 // Firebase Admin initialisation
-// ---------------------------------------------------------------------------
 // The private key stored in .env uses literal "\n" — replace with real newlines
 // so the PEM is valid before passing it to the SDK.
 if (!admin.apps.length) {
@@ -21,27 +19,21 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-// ---------------------------------------------------------------------------
 // Express setup
-// ---------------------------------------------------------------------------
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
-// ---------------------------------------------------------------------------
 // Constants
-// ---------------------------------------------------------------------------
 const REMINDERS_COL = 'reminders';
 
-// ---------------------------------------------------------------------------
 // Gemini system prompt — generated per-request so it includes today's date.
 // This prevents Gemini from picking a past year when the user omits the year.
-// ---------------------------------------------------------------------------
 function getGeminiSystemPrompt() {
-  const now      = new Date();
-  const year     = now.getFullYear();
-  const month    = String(now.getMonth() + 1).padStart(2, '0');
-  const day      = String(now.getDate()).padStart(2, '0');
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
   const todayStr = `${year}-${month}-${day}`;
   return (
     `You are a reminder extraction engine. Today's date is ${todayStr} and the ` +
@@ -57,31 +49,22 @@ function getGeminiSystemPrompt() {
   );
 }
 
-// ---------------------------------------------------------------------------
 // Helper: strip markdown / code fences Gemini sometimes adds despite the prompt
-// ---------------------------------------------------------------------------
 function extractJSON(raw) {
   // Remove ```json ... ``` or ``` ... ``` wrappers if present
   const stripped = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
   return JSON.parse(stripped);
 }
 
-// ===========================================================================
-// ROUTES
-// ===========================================================================
-
-// ---------------------------------------------------------------------------
+// ROUTES:-
 // GET /api/health
-// ---------------------------------------------------------------------------
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
-// ---------------------------------------------------------------------------
 // POST /api/parse
 // Accepts { text } OR { audio (base64), mimeType } and returns reminder array.
 // When audio is provided Gemini transcribes + extracts in one multimodal call.
-// ---------------------------------------------------------------------------
 app.post('/api/parse', async (req, res) => {
   try {
     const { text, audio, mimeType } = req.body;
@@ -107,7 +90,7 @@ app.post('/api/parse', async (req, res) => {
         {
           inlineData: {
             mimeType: mimeType || 'audio/m4a',
-            data:     audio,
+            data: audio,
           },
         },
       ];
@@ -122,14 +105,14 @@ app.post('/api/parse', async (req, res) => {
       },
       contents: [
         {
-          role:  'user',
+          role: 'user',
           parts: userParts,
         },
       ],
     };
 
     const geminiRes = await axios.post(geminiUrl, payload, {
-      headers:  { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' },
       maxBodyLength: 50 * 1024 * 1024, // allow up to 50 MB body (audio)
     });
 
@@ -154,10 +137,8 @@ app.post('/api/parse', async (req, res) => {
   }
 });
 
-// ---------------------------------------------------------------------------
 // POST /api/reminders
 // Save a single confirmed reminder to Firestore.
-// ---------------------------------------------------------------------------
 app.post('/api/reminders', async (req, res) => {
   try {
     const { title, datetime, recurrence, note, notificationId } = req.body;
@@ -180,10 +161,8 @@ app.post('/api/reminders', async (req, res) => {
   }
 });
 
-// ---------------------------------------------------------------------------
 // GET /api/reminders
 // Fetch all reminders sorted by datetime ascending.
-// ---------------------------------------------------------------------------
 app.get('/api/reminders', async (_req, res) => {
   try {
     const snapshot = await db
@@ -203,10 +182,8 @@ app.get('/api/reminders', async (_req, res) => {
   }
 });
 
-// ---------------------------------------------------------------------------
 // PUT /api/reminders/:id
 // Update a reminder document.
-// ---------------------------------------------------------------------------
 app.put('/api/reminders/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -230,10 +207,8 @@ app.put('/api/reminders/:id', async (req, res) => {
   }
 });
 
-// ---------------------------------------------------------------------------
 // DELETE /api/reminders/:id
 // Hard-delete a reminder document.
-// ---------------------------------------------------------------------------
 app.delete('/api/reminders/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -245,9 +220,7 @@ app.delete('/api/reminders/:id', async (req, res) => {
   }
 });
 
-// ---------------------------------------------------------------------------
 // Start server
-// ---------------------------------------------------------------------------
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`RemindSmart server running on port ${PORT}`);
