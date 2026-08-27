@@ -19,14 +19,10 @@ import * as Notifications from 'expo-notifications';
 import * as ImagePicker from 'expo-image-picker';
 import axios from 'axios';
 
-// ---------------------------------------------------------------------------
-// Config — update to your machine's LAN IP when testing on a physical device
-// ---------------------------------------------------------------------------
+// Configged to own LAN IP for testing on a physical device
 const API_BASE = 'http://10.21.170.164:3000'; // changed to my own's ntwk
 
-// ---------------------------------------------------------------------------
 // Notification handler (required by expo-notifications)
-// ---------------------------------------------------------------------------
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -35,9 +31,7 @@ Notifications.setNotificationHandler({
   }),
 });
 
-// ---------------------------------------------------------------------------
 // PulseRing — animated ring that pulses while recording
-// ---------------------------------------------------------------------------
 function PulseRing({ isRecording }) {
   const scale = useRef(new Animated.Value(1)).current;
   const opacity = useRef(new Animated.Value(0.6)).current;
@@ -77,9 +71,6 @@ function PulseRing({ isRecording }) {
   );
 }
 
-// ===========================================================================
-// HomeScreen
-// ===========================================================================
 export default function HomeScreen({ navigation }) {
   // Voice state
   const [isRecording, setIsRecording] = useState(false);
@@ -98,9 +89,7 @@ export default function HomeScreen({ navigation }) {
   // Banner shown below mic button for errors / hints
   const [micBannerMsg, setMicBannerMsg] = useState('');
 
-  // -------------------------------------------------------------------------
   // Permissions on mount + cleanup on unmount
-  // -------------------------------------------------------------------------
   useEffect(() => {
     (async () => {
       const { status } = await Notifications.requestPermissionsAsync();
@@ -115,9 +104,7 @@ export default function HomeScreen({ navigation }) {
     };
   }, []);
 
-  // -------------------------------------------------------------------------
   // Voice recording — works in Expo Go via expo-av + Gemini audio API
-  // -------------------------------------------------------------------------
   async function handleMicPress() {
     if (isRecording) {
       await stopRecording();
@@ -206,9 +193,7 @@ export default function HomeScreen({ navigation }) {
     }
   }
 
-  // -------------------------------------------------------------------------
   // Core API call — shared by all 3 input paths
-  // -------------------------------------------------------------------------
   async function parseReminder(text) {
     if (!text || !text.trim()) {
       Alert.alert('Empty input', 'Please provide some text before submitting.');
@@ -237,9 +222,7 @@ export default function HomeScreen({ navigation }) {
     }
   }
 
-  // -------------------------------------------------------------------------
   // Image picker
-  // -------------------------------------------------------------------------
   async function handleImagePick() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
@@ -292,9 +275,7 @@ export default function HomeScreen({ navigation }) {
     ]);
   }
 
-  // -------------------------------------------------------------------------
   // Render
-  // -------------------------------------------------------------------------
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -308,9 +289,7 @@ export default function HomeScreen({ navigation }) {
         <Text style={styles.heading}>What do you need to remember?</Text>
         <Text style={styles.subheading}>Speak, type, or scan a document</Text>
 
-        {/* ════════════════════════════════════════════
-            1. VOICE INPUT
-        ════════════════════════════════════════════ */}
+        {/* 1. VOICE INPUT*/}
         <View style={styles.voiceSection}>
           {/* Pulse ring sits behind the button */}
           <View style={styles.micWrapper}>
@@ -337,9 +316,7 @@ export default function HomeScreen({ navigation }) {
           )}
         </View>
 
-        {/* ════════════════════════════════════════════
-            2. TEXT INPUT
-        ════════════════════════════════════════════ */}
+        {/* 2. TEXT INPUT*/}
         <View style={styles.divider}>
           <View style={styles.dividerLine} />
           <Text style={styles.dividerText}>or type</Text>
@@ -366,9 +343,7 @@ export default function HomeScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* ════════════════════════════════════════════
-            3. IMAGE INPUT
-        ════════════════════════════════════════════ */}
+        {/* 3. IMAGE INPUT*/}
         <View style={styles.divider}>
           <View style={styles.dividerLine} />
           <Text style={styles.dividerText}>or scan</Text>
@@ -420,9 +395,7 @@ export default function HomeScreen({ navigation }) {
   );
 }
 
-// ===========================================================================
 // Styles
-// ===========================================================================
 const PURPLE = '#6c63ff';
 const DARK = '#1a1a2e';
 const CARD = '#f4f3ff';

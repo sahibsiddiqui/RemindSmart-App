@@ -15,14 +15,10 @@ import { useFocusEffect } from '@react-navigation/native';
 import * as Notifications from 'expo-notifications';
 import axios from 'axios';
 
-// ---------------------------------------------------------------------------
 // Config
-// ---------------------------------------------------------------------------
 const API_BASE = 'http://10.21.170.164:3000';
 
-// ---------------------------------------------------------------------------
 // Helpers
-// ---------------------------------------------------------------------------
 const PURPLE = '#6c63ff';
 const DARK   = '#1a1a2e';
 
@@ -53,14 +49,10 @@ function capitalize(str) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-// ---------------------------------------------------------------------------
 // SwipeableCard — swipe left to reveal delete button
-// ---------------------------------------------------------------------------
 const DELETE_W = 80;
 
-// ---------------------------------------------------------------------------
 // Skeleton loading — shown while fetching on first mount
-// ---------------------------------------------------------------------------
 function SkeletonCard() {
   const anim = useRef(new Animated.Value(0.3)).current;
 
@@ -181,9 +173,6 @@ function SwipeableCard({ reminder, onDelete, onPress }) {
   );
 }
 
-// ===========================================================================
-// RemindersListScreen
-// ===========================================================================
 export default function RemindersListScreen({ navigation }) {
   const [reminders,    setReminders]    = useState([]);
   const [loading,      setLoading]      = useState(true);
@@ -199,7 +188,7 @@ export default function RemindersListScreen({ navigation }) {
       .catch(() => {});
   }, []);
 
-  // ── Fetch ───────────────────────────────────────────────────────────
+  // Fetch:
   // Extracted so it can be called from both useFocusEffect and onRefresh.
   const loadReminders = useCallback(async (showSpinner = false) => {
     setError(null);
@@ -224,7 +213,7 @@ export default function RemindersListScreen({ navigation }) {
     }, [loadReminders])
   );
 
-  // ── Delete ─────────────────────────────────────────────────────────────
+  // Delete
   function handleDelete(reminder) {
     Alert.alert(
       'Delete Reminder',
@@ -262,7 +251,7 @@ export default function RemindersListScreen({ navigation }) {
     );
   }
 
-  // ── States ──────────────────────────────────────────────────────────────
+  // States
   if (loading) {
     return <SkeletonList />;
   }
@@ -282,7 +271,7 @@ export default function RemindersListScreen({ navigation }) {
     );
   }
 
-  // ── List ────────────────────────────────────────────────────────────────
+  // List
   return (
     <FlatList
       data={reminders}
@@ -342,10 +331,7 @@ export default function RemindersListScreen({ navigation }) {
   );
 }
 
-// ===========================================================================
-// Styles
-// ===========================================================================
-
+// Styles...
 // SwipeableCard styles
 const sw = StyleSheet.create({
   row: {

@@ -12,14 +12,10 @@ import {
 import * as Notifications from 'expo-notifications';
 import axios from 'axios';
 
-// ---------------------------------------------------------------------------
 // Config
-// ---------------------------------------------------------------------------
 const API_BASE = 'http://10.21.170.164:3000';
 
-// ---------------------------------------------------------------------------
 // Notification trigger builder (mirrors ConfirmScreen)
-// ---------------------------------------------------------------------------
 function buildNotificationTrigger(isoDatetime, recurrence) {
   const d      = new Date(isoDatetime);
   const hour   = d.getHours();
@@ -46,9 +42,7 @@ function buildNotificationTrigger(isoDatetime, recurrence) {
   return { type: Notifications.SchedulableTriggerInputTypes.DATE, date: d };
 }
 
-// ---------------------------------------------------------------------------
 // Recurrence options
-// ---------------------------------------------------------------------------
 const RECURRENCE_OPTIONS = [
   { value: 'none',    label: 'None'    },
   { value: 'daily',  label: 'Daily'   },
@@ -56,9 +50,7 @@ const RECURRENCE_OPTIONS = [
   { value: 'monthly',label: 'Monthly' },
 ];
 
-// ---------------------------------------------------------------------------
 // Date / time helpers (same as ConfirmScreen)
-// ---------------------------------------------------------------------------
 function isoToDateStr(iso) {
   try {
     const d = new Date(iso);
@@ -91,9 +83,7 @@ function buildIso(dateStr, timeStr) {
   }
 }
 
-// ---------------------------------------------------------------------------
 // SegmentedControl
-// ---------------------------------------------------------------------------
 function SegmentedControl({ value, onChange }) {
   return (
     <View style={seg.container}>
@@ -116,13 +106,10 @@ function SegmentedControl({ value, onChange }) {
   );
 }
 
-// ===========================================================================
-// EditReminderScreen
-// ===========================================================================
 export default function EditReminderScreen({ route, navigation }) {
   const original = route?.params?.reminder ?? {};
 
-  // ── Local editable state ─────────────────────────────────────────────────
+  // Local editable state
   const [title,      setTitle]      = useState(original.title      ?? '');
   const [dateStr,    setDateStr]    = useState(isoToDateStr(original.datetime));
   const [timeStr,    setTimeStr]    = useState(isoToTimeStr(original.datetime));
@@ -130,7 +117,7 @@ export default function EditReminderScreen({ route, navigation }) {
   const [note,       setNote]       = useState(original.note        ?? '');
   const [saving,     setSaving]     = useState(false);
 
-  // ── Save flow ─────────────────────────────────────────────────────────────
+  // Save flow
   async function handleSaveChanges() {
     if (!title.trim()) {
       Alert.alert('Title required', 'Please enter a title for this reminder.');
@@ -142,7 +129,7 @@ export default function EditReminderScreen({ route, navigation }) {
     const apiRecurrence = recurrence === 'none' ? null : recurrence;
 
     try {
-      // ── Step 1: PUT updated fields ──────────────────────────────────────
+      // Step 1: PUT updated fields
       await axios.put(`${API_BASE}/api/reminders/${original.id}`, {
         title:          title.trim(),
         datetime:       isoDatetime,
@@ -151,14 +138,14 @@ export default function EditReminderScreen({ route, navigation }) {
         notificationId: original.notificationId ?? '',
       });
 
-      // ── Step 2: Cancel old notification ─────────────────────────────────
+      // Step 2: Cancel old notification
       if (original.notificationId) {
         await Notifications.cancelScheduledNotificationAsync(
           original.notificationId
         ).catch(() => {});
       }
 
-      // ── Step 3: Schedule new notification ───────────────────────────────
+      // Step 3: Schedule new notification
       let newNotifId = '';
       try {
         const triggerDate = new Date(isoDatetime);
@@ -180,7 +167,7 @@ export default function EditReminderScreen({ route, navigation }) {
         // Non-fatal — continue without notification
       }
 
-      // ── Step 4: PUT new notificationId ──────────────────────────────────
+      // Step 4: PUT new notificationId
       if (newNotifId) {
         await axios.put(`${API_BASE}/api/reminders/${original.id}`, {
           title:          title.trim(),
@@ -194,7 +181,7 @@ export default function EditReminderScreen({ route, navigation }) {
         });
       }
 
-      // ── Step 5: Navigate back ────────────────────────────────────────────
+      // Step 5: Navigate back
       navigation.navigate('RemindersList');
 
     } catch (err) {
@@ -205,7 +192,7 @@ export default function EditReminderScreen({ route, navigation }) {
     }
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // Rendering
   return (
     <View style={s.root}>
       <ScrollView
@@ -276,7 +263,7 @@ export default function EditReminderScreen({ route, navigation }) {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* ── Sticky footer ── */}
+      {/* Sticky footer */}
       <View style={s.footer}>
         {saving ? (
           <View style={s.savingRow}>
@@ -298,9 +285,7 @@ export default function EditReminderScreen({ route, navigation }) {
   );
 }
 
-// ===========================================================================
 // Styles
-// ===========================================================================
 const PURPLE = '#6c63ff';
 const DARK   = '#1a1a2e';
 

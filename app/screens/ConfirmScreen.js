@@ -12,17 +12,9 @@ import {
 import * as Notifications from 'expo-notifications';
 import axios from 'axios';
 
-// ---------------------------------------------------------------------------
-// Config — must match HomeScreen
-// ---------------------------------------------------------------------------
-const API_BASE = 'http://10.21.170.164:3000'; // ← your LAN IP
+// Configged, matches HomeScreen
+const API_BASE = 'http://10.21.170.164:3000'; // ← LAN IP
 
-// ---------------------------------------------------------------------------
-// Notification trigger builder
-// Returns the correct trigger for one-time vs recurring reminders.
-// DAILY and WEEKLY triggers fire at the NEXT occurrence, so they work even
-// if the initial date is in the past.
-// ---------------------------------------------------------------------------
 function buildNotificationTrigger(isoDatetime, recurrence) {
   const d      = new Date(isoDatetime);
   const hour   = d.getHours();
@@ -44,8 +36,7 @@ function buildNotificationTrigger(isoDatetime, recurrence) {
     };
   }
   if (recurrence === 'monthly') {
-    // No native monthly trigger — approximate with a 30-day repeating interval.
-    // Fires 30 days after each previous notification.
+    // No native monthly trigger, so it fires 30 days after each previous notification.
     return {
       type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
       seconds: 30 * 24 * 60 * 60,
@@ -59,19 +50,15 @@ function buildNotificationTrigger(isoDatetime, recurrence) {
   };
 }
 
-// ---------------------------------------------------------------------------
 // Recurrence options
-// ---------------------------------------------------------------------------
 const RECURRENCE_OPTIONS = [
-  { value: 'none',    label: 'None'    },
+  { value: 'none',   label: 'None'    },
   { value: 'daily',  label: 'Daily'   },
   { value: 'weekly', label: 'Weekly'  },
   { value: 'monthly',label: 'Monthly' },
 ];
 
-// ---------------------------------------------------------------------------
-// Date / time helpers
-// ---------------------------------------------------------------------------
+// Date & time helpers:
 
 /** "2026-08-12T09:00:00.000Z" → "2026-08-12" (local date) */
 function isoToDateStr(iso) {
@@ -118,9 +105,7 @@ function buildIso(dateStr, timeStr) {
   }
 }
 
-// ---------------------------------------------------------------------------
 // SegmentedControl — recurrence selector
-// ---------------------------------------------------------------------------
 function SegmentedControl({ value, onChange }) {
   return (
     <View style={seg.container}>
@@ -143,9 +128,7 @@ function SegmentedControl({ value, onChange }) {
   );
 }
 
-// ---------------------------------------------------------------------------
 // ReminderCard — one editable card per reminder
-// ---------------------------------------------------------------------------
 function ReminderCard({ reminder, index, onChange }) {
   // Check if the current date+time is in the past
   const isPast = (() => {
@@ -231,13 +214,10 @@ function ReminderCard({ reminder, index, onChange }) {
   );
 }
 
-// ===========================================================================
-// ConfirmScreen
-// ===========================================================================
 export default function ConfirmScreen({ route, navigation }) {
   const incoming = route?.params?.reminders ?? [];
 
-  // ── Editable state ──────────────────────────────────────────────────────
+  // Editable state
   const [reminders, setReminders] = useState(
     incoming.map((r, i) => ({
       _key:       i,
@@ -251,14 +231,14 @@ export default function ConfirmScreen({ route, navigation }) {
 
   const [saving, setSaving] = useState(false);
 
-  // ── Helpers ─────────────────────────────────────────────────────────────
+  // Helpers
   function updateField(index, field, value) {
     setReminders((prev) =>
       prev.map((r, i) => (i === index ? { ...r, [field]: value } : r))
     );
   }
 
-  // ── Save flow ────────────────────────────────────────────────────────────
+  // ─Save flow
   async function handleSaveAll() {
     if (reminders.length === 0) {
       Alert.alert('Nothing to save', 'There are no reminders to save.');
@@ -273,7 +253,7 @@ export default function ConfirmScreen({ route, navigation }) {
         const isoDatetime = buildIso(r.dateStr, r.timeStr);
         const recurrence  = r.recurrence === 'none' ? null : r.recurrence;
 
-        // ── Step 1: POST reminder to Firestore ──────────────────────────
+        // 1) POST reminder to Firestore
         let savedId;
         try {
           const postRes = await axios.post(`${API_BASE}/api/reminders`, {
@@ -292,10 +272,10 @@ export default function ConfirmScreen({ route, navigation }) {
             [{ text: 'OK' }]
           );
           setSaving(false);
-          return; // stop — keep user on screen to retry
+          return; // stops. and keep user on screen to retry
         }
 
-        // ── Step 2: Schedule local push notification ────────────────────────
+        // 2) Schedule local push notification
         let notifId = '';
         try {
           const triggerDate = new Date(isoDatetime);
@@ -328,7 +308,7 @@ export default function ConfirmScreen({ route, navigation }) {
           );
         }
 
-        // ── Step 3: PUT notificationId back to Firestore ────────────────
+        // 3) PUT notificationId back to Firestore
         if (savedId && notifId) {
           try {
             await axios.put(`${API_BASE}/api/reminders/${savedId}`, {
@@ -348,7 +328,7 @@ export default function ConfirmScreen({ route, navigation }) {
         }
       } // end for-loop
 
-      // ── All saved ───────────────────────────────────────────────────────
+      // All saved
       Alert.alert(
         '✅ Saved!',
         `${reminders.length} reminder${reminders.length > 1 ? 's' : ''} scheduled successfully.`,
@@ -367,7 +347,7 @@ export default function ConfirmScreen({ route, navigation }) {
     }
   }
 
-  // ── Render ───────────────────────────────────────────────────────────────
+  // Render
   return (
     <View style={s.root}>
       <ScrollView
@@ -427,15 +407,13 @@ export default function ConfirmScreen({ route, navigation }) {
   );
 }
 
-// ===========================================================================
-// Styles
-// ===========================================================================
+// Styles:-
 const PURPLE = '#6c63ff';
 const DARK   = '#1a1a2e';
 const CARD_BG = '#ffffff';
 const BG     = '#f7f7fb';
 
-// ── Shared / page styles ──
+// Shared / page styles
 const s = StyleSheet.create({
   root: {
     flex: 1,
@@ -457,7 +435,7 @@ const s = StyleSheet.create({
     marginBottom: 20,
   },
 
-  // ── Form fields ──
+  // Form fields
   label: {
     fontSize: 10,
     fontWeight: '700',
@@ -489,7 +467,7 @@ const s = StyleSheet.create({
     flex: 1,
   },
 
-  // ── Empty state ──
+  // Empty state
   empty: {
     alignItems: 'center',
     paddingVertical: 48,
@@ -509,7 +487,7 @@ const s = StyleSheet.create({
     color: '#888',
   },
 
-  // ── Footer ──
+  // Footer
   footer: {
     position: 'absolute',
     bottom: 0,
@@ -557,7 +535,7 @@ const s = StyleSheet.create({
   },
 });
 
-// ── Card styles ──
+// Card styles:
 const card = StyleSheet.create({
   container: {
     backgroundColor: CARD_BG,
@@ -612,7 +590,7 @@ const card = StyleSheet.create({
   },
 });
 
-// ── Segmented control styles ──
+// Segmented control styles:
 const seg = StyleSheet.create({
   container: {
     flexDirection: 'row',
