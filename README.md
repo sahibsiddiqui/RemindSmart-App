@@ -1,7 +1,7 @@
 # RemindSmart 🔔
 ### AI-Powered Smart Reminder App
 
-> Speak, type, or photograph — RemindSmart uses AI to figure out your reminders so you don't have to.
+> Speak, type, or photograph. RemindSmart uses AI to figure out your reminders so you don't have to.
 
 Built for the things people actually forget: 
 irregular medicine schedules, flight check-ins booked weeks ago, monthly payments, birthday wishes. 
@@ -17,7 +17,7 @@ Not a habit tracker. Not a basic calendar. Something smarter.
 
 ## The Problem
 
-Most reminder apps handle daily routines well. But there's a gap for **low-frequency, high-stakes events** — things that are days or weeks away, happen irregularly, and carry real consequences when forgotten.
+Most reminder apps handle daily routines well. But there's a gap for **low-frequency, high-stakes events** ie. things that are days or weeks away, happen irregularly, and carry real consequences when forgotten.
 
 - "Blood test after 3 days, then 7, then 21" — no app handles this well
 - Flight booked 6 weeks ago — you forget to check in
@@ -69,7 +69,7 @@ Local push notifications scheduled via expo-notifications
 | Navigation | React Navigation (Native Stack) |
 | Backend | Node.js, Express |
 | Database | Firebase Firestore |
-| AI / NLP | Google Gemini 2.5 Flash |
+| AI / NLP | Google Gemini 3.5 Flash |
 | Voice | expo-av + Gemini multimodal audio |
 | Image Input | expo-image-picker |
 | Notifications | expo-notifications |
@@ -183,7 +183,7 @@ Every reminder stores its `expo-notifications` ID in Firestore. On edit or delet
 
 - [ ] User auth + cloud sync across devices
 - [ ] WhatsApp / email forwarding as input
-- [ ] Flight booking detection — auto-set check-in reminder
+- [ ] Flight booking detection —> auto-set check-in reminder
 - [ ] Calendar export (`.ics`)
 - [ ] Widget for home screen
 
