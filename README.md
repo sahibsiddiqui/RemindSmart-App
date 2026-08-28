@@ -156,6 +156,7 @@ Update the API base URL in the app to point to your backend (local IP, not local
 // e.g. http://192.168.1.5:3000
 const API_BASE = 'http://YOUR_LOCAL_IP:3000'
 ```
+[To find your local ip, open windows terminal or cmd and type in "ipconfig", over there the network address shown for ipv4 address is your local ip.]
 
 Start the app:
 ```bash
