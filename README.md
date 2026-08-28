@@ -49,15 +49,15 @@ Local push notifications scheduled via expo-notifications
 
 ## Features
 
-- 🎙️ **Voice input** — speak naturally, Gemini transcribes + understands
-- ⌨️ **Text input** — type your reminder in plain language
-- 📷 **Image/prescription scan** — photograph a doctor's note, app extracts all dates
-- 🤖 **AI reminder engine** — handles irregular patterns like "3 days, 7 days, 21 days"
-- 🔔 **Smart notifications** — context-aware alerts, not generic pings
-- 🔁 **Recurrence support** — daily, weekly, monthly
-- ✏️ **Full CRUD** — view, edit, delete reminders with notification lifecycle management
-- 💀 **Skeleton loading** — animated placeholders while fetching
-- 👆 **Swipe to delete** — gesture handling via PanResponder
+- **Voice input** — speak naturally, Gemini transcribes + understands
+- **Text input** — type your reminder in plain language
+- **Image/prescription scan** — photograph a doctor's note, app extracts all dates
+- **AI reminder engine** — handles irregular patterns like "3 days, 7 days, 21 days"
+- **Smart notifications** — context-aware alerts, not generic pings
+- **Recurrence support** — daily, weekly, monthly
+- **Full CRUD** — view, edit, delete reminders with notification lifecycle management
+- **Skeleton loading** — animated placeholders while fetching
+- **Swipe to delete** — gesture handling via PanResponder
 
 ---
 
