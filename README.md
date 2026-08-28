@@ -168,14 +168,14 @@ Scan the QR code with Expo Go on your phone.
 
 ## Notable Engineering Decisions
 
-**Voice without a custom build**
-`@react-native-voice/voice` doesn't work with Expo Go out of the box. Instead of ejecting to a custom dev build, I used `expo-av` to record audio and sent it directly to Gemini's multimodal API for transcription — achieving the same result with zero native build overhead.
+**Voice without a custom build:**
+`@react-native-voice/voice` doesn't work with Expo Go out of the box. Instead of ejecting to a custom dev build, I used `expo-av` to record audio and sent it directly to Gemini's multimodal API for transcription, achieving the same result with zero native build overhead.
 
-**Date-aware AI prompts**
+**Date-aware AI prompts:**
 Gemini would sometimes infer the wrong year for relative dates ("after 3 days"). Fixed by injecting today's date dynamically into the system prompt so the model always has accurate temporal context.
 
-**Notification lifecycle**
-Every reminder stores its `expo-notifications` ID in Firestore. On edit or delete, the old notification is cancelled before a new one is scheduled — no ghost notifications.
+**Notification lifecycle:**
+Every reminder stores its `expo-notifications` ID in Firestore. On edit or delete, the old notification is cancelled before a new one is scheduled so no ghost notifications.
 
 ---
 
