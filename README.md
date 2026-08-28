@@ -11,7 +11,7 @@ Not a habit tracker. Not a basic calendar. Something smarter.
 
 ## Demo
 
-> https://github.com/user-attachments/assets/94892902-54bb-401f-8451-85066cc1295a
+https://github.com/user-attachments/assets/94892902-54bb-401f-8451-85066cc1295a
 
 ---
 
