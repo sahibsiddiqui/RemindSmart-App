@@ -14,6 +14,7 @@ Not a habit tracker. Not a basic calendar. Something smarter.
 [https://github.com/user-attachments/assets/94892902-54bb-401f-8451-85066cc1295a](https://github.com/user-attachments/assets/424e8820-fda7-4ec6-82db-57d030b3a1ba)
 
 <img width="500" alt="image" src="https://github.com/user-attachments/assets/28f3b27e-4729-49c3-adb9-c51a69e5ca45" />
+
 App sends notification for the respective reminder as well
 
 ---
